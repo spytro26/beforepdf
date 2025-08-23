@@ -2,12 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Share } from 'react-native';
 import { FileText, Play } from 'lucide-react-native';
 import { Header } from '@/components/Header';
 import { calculateEnhancedFreezerLoad } from '@/utils/enhancedFreezerCalculations';
 import { FREEZER_DEFAULTS } from '@/constants/freezerData';
 import { useFocusEffect } from '@react-navigation/native';
+import { generateFreezerPDF } from '@/utils/pdfGenerator';
 
 export default function FreezerResultsScreen() {
   const [results, setResults] = useState<any>(null);
@@ -228,108 +228,72 @@ export default function FreezerResultsScreen() {
   const handleExport = async () => {
     if (!results) return;
 
-    const reportData = `
-FREEZER COOLING LOAD CALCULATION REPORT
-=======================================
-
-ROOM SPECIFICATIONS:
-- Dimensions: ${results.dimensions.length}m × ${results.dimensions.width}m × ${results.dimensions.height}m
-- Volume: ${results.volume.toFixed(2)} m³
-- Wall Area: ${results.areas.wall.toFixed(2)} m²
-- Ceiling Area: ${results.areas.ceiling.toFixed(2)} m²
-- Floor Area: ${results.areas.floor.toFixed(2)} m²
-- Door Area: ${results.areas.door.toFixed(2)} m²
-
-OPERATING CONDITIONS:
-- External Temperature: ${results.conditions.externalTemp}°C
-- Internal Temperature: ${results.conditions.internalTemp}°C
-- Temperature Difference: ${results.temperatureDifference.toFixed(1)}°C
-- Operating Hours: 24 hrs/day
-- Pull Down Time: ${results.pullDownTime} hours
-- Room Humidity: ${results.conditions.humidity}%RH
-
-CONSTRUCTION:
-- Insulation Type: ${results.construction.type}
-- Insulation Thickness: ${results.construction.thickness}mm
-- U-Factor: ${results.construction.uFactor.toFixed(3)} W/m²K
-- Floor Thickness: ${results.construction.floorThickness}mm
-
-PRODUCT INFORMATION:
-- Product Type: ${results.productInfo.type}
-- Daily Load: ${results.productInfo.mass} kg
-- Incoming Temperature: ${results.productInfo.incomingTemp}°C
-- Outgoing Temperature: ${results.productInfo.outgoingTemp}°C
-- Freezing Point: ${results.productInfo.freezingPoint}°C
-- Specific Heat Above: ${results.productInfo.properties.specificHeatAbove} kJ/kg·K
-- Specific Heat Below: ${results.productInfo.properties.specificHeatBelow} kJ/kg·K
-- Latent Heat: ${results.productInfo.properties.latentHeat} kJ/kg
-
-STORAGE CAPACITY:
-- Maximum Storage: ${results.storageCapacity.maximum.toFixed(0)} kg
-- Storage Density: ${results.storageCapacity.density} kg/m³
-- Current Load: ${results.productInfo.mass} kg
-- Utilization: ${results.storageCapacity.utilization.toFixed(1)}%
-
-COOLING LOAD BREAKDOWN:
-1. Transmission Load:
-   - Walls: ${results.breakdown.transmission.walls.toFixed(3)} kW
-   - Ceiling: ${results.breakdown.transmission.ceiling.toFixed(3)} kW
-   - Floor: ${results.breakdown.transmission.floor.toFixed(3)} kW
-   - Total: ${results.breakdown.transmission.total.toFixed(3)} kW
-
-2. Product Load (3-Stage):
-   - Sensible Above Freezing: ${results.breakdown.product.sensibleAbove.toFixed(3)} kW
-   - Latent Heat (Freezing): ${results.breakdown.product.latent.toFixed(3)} kW
-   - Sensible Below Freezing: ${results.breakdown.product.sensibleBelow.toFixed(3)} kW
-   - Total: ${results.breakdown.product.total.toFixed(3)} kW
-
-3. Respiration Load: ${results.breakdown.respiration.toFixed(3)} kW
-
-4. Air Change Load: ${results.breakdown.airChange.toFixed(3)} kW
-
-5. Miscellaneous Loads:
-   - Occupancy: ${results.breakdown.miscellaneous.occupancy.toFixed(3)} kW
-   - Lighting: ${results.breakdown.miscellaneous.lighting.toFixed(3)} kW
-   - Equipment: ${results.breakdown.miscellaneous.equipment.toFixed(3)} kW
-   - Peripheral Heaters: ${results.breakdown.miscellaneous.peripheralHeaters.toFixed(3)} kW
-   - Door Heaters: ${results.breakdown.miscellaneous.doorHeaters.toFixed(3)} kW
-   - Tray Heaters: ${results.breakdown.miscellaneous.trayHeaters.toFixed(3)} kW
-   - Steam Humidifiers: ${results.breakdown.miscellaneous.steamHumidifiers.toFixed(3)} kW
-   - Total: ${results.breakdown.miscellaneous.total.toFixed(3)} kW
-
-6. Fan Motor Load: ${results.breakdown.fanMotor.toFixed(3)} kW
-
-SPECIFIC OUTPUTS:
-- Load in kJ/24 Hrs: ${results.excelOutputs.totalKJ24Hr.toFixed(0)} kJ
-- Sensible Heat in kJ/24 Hr: ${results.excelOutputs.sensibleHeatKJ24Hr.toFixed(0)} kJ
-- Latent Heat in kJ/24 Hr: ${results.excelOutputs.latentHeatKJ24Hr.toFixed(0)} kJ
-- SHR (Sensible Heat Ratio): ${results.excelOutputs.SHR.toFixed(3)}
-- Air Qty Required: ${results.excelOutputs.airQtyRequiredCfm.toFixed(0)} cfm
-- Maximum Storage: ${results.excelOutputs.maximumStorage.toFixed(0)} kg
-
-FINAL RESULTS:
-- Total Load (Before Safety): ${results.loadSummary.totalBeforeSafety.toFixed(3)} kW
-- Safety Factor Load (10%): ${results.loadSummary.safetyFactor.toFixed(3)} kW
-- Final Load: ${results.loadSummary.finalLoad.toFixed(3)} kW
-- Refrigeration Capacity: ${results.totalTR.toFixed(2)} TR
-- BTU/hr: ${results.totalBTU.toFixed(0)} BTU/hr
-
-AIR FLOW & EQUIPMENT:
-- Total Air Flow: ${results.conditions.totalAirFlow} CFM
-- Fan Motor Rating: ${results.equipmentSummary.totalFanLoad.toFixed(2)} kW
-- Total Heater Load: ${results.equipmentSummary.totalHeaterLoad.toFixed(2)} kW
-
-Generated by Enzo CoolCalc
-Date: ${new Date().toLocaleDateString()}
-    `;
-
     try {
-      await Share.share({
-        message: reportData,
-        title: 'Freezer Cooling Load Report'
-      });
+      // Gather input data for the PDF
+      const inputData = {
+        room: {
+          length: results.dimensions.length,
+          width: results.dimensions.width,
+          height: results.dimensions.height,
+          volume: results.volume,
+          insulationType: results.construction.type,
+          insulationThickness: results.construction.thickness
+        },
+        conditions: {
+          externalTemp: results.conditions.externalTemp,
+          internalTemp: results.conditions.internalTemp,
+          temperatureDifference: results.temperatureDifference,
+          operatingHours: 24,
+          pullDownTime: results.pullDownTime
+        },
+        product: {
+          type: results.productInfo.type,
+          dailyLoad: results.productInfo.mass,
+          incomingTemp: results.productInfo.incomingTemp,
+          outgoingTemp: results.productInfo.outgoingTemp,
+          storageType: results.storageCapacity.type,
+          numberOfPeople: results.conditions.numberOfPeople || 2
+        }
+      };
+
+      // Format results for PDF
+      const pdfResults = {
+        room: inputData.room,
+        conditions: inputData.conditions,
+        product: inputData.product,
+        loadBreakdown: {
+          transmissionLoad: {
+            walls: results.breakdown.transmission.walls,
+            ceiling: results.breakdown.transmission.ceiling,
+            floor: results.breakdown.transmission.floor,
+            total: results.breakdown.transmission.total
+          },
+          productLoad: {
+            sensible: results.breakdown.product.sensibleAbove + results.breakdown.product.sensibleBelow,
+            latent: results.breakdown.product.latent,
+            total: results.breakdown.product.total
+          },
+          airInfiltrationLoad: results.breakdown.airChange,
+          internalLoads: {
+            occupancy: results.breakdown.miscellaneous.occupancy,
+            lighting: results.breakdown.miscellaneous.lighting,
+            equipment: results.breakdown.miscellaneous.equipment,
+            total: results.breakdown.miscellaneous.total
+          }
+        },
+        totalLoad: {
+          finalLoadKW: results.loadSummary.finalLoad
+        },
+        conversions: {
+          totalTR: results.totalTR,
+          totalBTU: results.totalBTU
+        }
+      };
+
+      await generateFreezerPDF(pdfResults, inputData);
     } catch (error) {
-      console.error('Error sharing report:', error);
+      console.error('Error generating PDF:', error);
+      Alert.alert('Error', 'Failed to generate PDF. Please try again.');
     }
   };
 
@@ -608,7 +572,7 @@ Date: ${new Date().toLocaleDateString()}
         <View style={styles.section}>
           <TouchableOpacity style={styles.exportButton} onPress={handleExport}>
             <FileText color="#FFFFFF" size={20} strokeWidth={2} />
-            <Text style={styles.exportButtonText}>Export Report</Text>
+            <Text style={styles.exportButtonText}>Generate PDF</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>

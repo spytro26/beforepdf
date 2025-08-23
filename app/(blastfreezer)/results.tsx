@@ -2,12 +2,12 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Share } from 'react-native';
 import { FileText, Play } from 'lucide-react-native';
 import { Header } from '@/components/Header';
 import { calculateBlastFreezerLoad } from '@/utils/blastFreezerCalculations';
 import { BLAST_FREEZER_DEFAULTS } from '@/constants/blastFreezerData';
 import { useFocusEffect } from '@react-navigation/native';
+import { generateBlastFreezerPDF } from '@/utils/pdfGenerator';
 
 export default function BlastFreezerResultsScreen() {
   const [results, setResults] = useState<any>(null);
@@ -253,107 +253,23 @@ export default function BlastFreezerResultsScreen() {
   const handleExport = async () => {
     if (!results) return;
 
-    const reportData = `
-BLAST FREEZER COOLING LOAD CALCULATION REPORT
-==============================================
-
-ROOM SPECIFICATIONS:
-- Dimensions: ${results.dimensions.length}m × ${results.dimensions.breadth}m × ${results.dimensions.height}m
-- Volume: ${results.volume.toFixed(2)} m³
-- Wall Area: ${results.areas.wall.toFixed(2)} m²
-- Ceiling Area: ${results.areas.ceiling.toFixed(2)} m²
-- Floor Area: ${results.areas.floor.toFixed(2)} m²
-- Door Area: ${results.areas.door.toFixed(2)} m²
-
-OPERATING CONDITIONS:
-- Ambient Temperature: ${results.conditions.ambientTemp}°C
-- Room Temperature: ${results.conditions.roomTemp}°C
-- Temperature Difference: ${results.temperatureDifference.toFixed(1)}°C
-- Batch Hours: ${results.batchHours} hrs
-- Operating Hours: ${results.conditions.operatingHours} hrs/day
-
-CONSTRUCTION:
-- Insulation Type: ${results.construction.type}
-- Wall Thickness: ${results.construction.wallThickness}mm
-- Ceiling Thickness: ${results.construction.ceilingThickness}mm
-- Floor Thickness: ${results.construction.floorThickness}mm
-- Internal Floor Thickness: ${results.construction.internalFloorThickness}mm
-- Wall U-Factor: ${results.construction.uFactors.walls.toFixed(3)} W/m²K
-- Ceiling U-Factor: ${results.construction.uFactors.ceiling.toFixed(3)} W/m²K
-- Floor U-Factor: ${results.construction.uFactors.floor.toFixed(3)} W/m²K
-
-PRODUCT INFORMATION:
-- Product Type: ${results.productInfo.type}
-- Capacity Required: ${results.productInfo.mass} kg
-- Incoming Temperature: ${results.productInfo.incomingTemp}°C
-- Outgoing Temperature: ${results.productInfo.outgoingTemp}°C
-- Specific Heat Above: ${results.productInfo.properties.specificHeatAbove} kJ/kg·K
-- Specific Heat Below: ${results.productInfo.properties.specificHeatBelow} kJ/kg·K
-- Latent Heat: ${results.productInfo.properties.latentHeat} kJ/kg
-- Freezing Point: ${results.productInfo.properties.freezingPoint}°C
-
-STORAGE CAPACITY:
-- Maximum Storage: ${results.storageCapacity.maximum.toFixed(0)} kg
-- Storage Density: ${results.storageCapacity.density} kg/m³
-- Utilization: ${results.storageCapacity.utilization.toFixed(1)}%
-
-COOLING LOAD BREAKDOWN:
-1. Transmission Load:
-   - Walls: ${results.breakdown.transmission.walls.toFixed(3)} kW
-   - Ceiling: ${results.breakdown.transmission.ceiling.toFixed(3)} kW
-   - Floor: ${results.breakdown.transmission.floor.toFixed(3)} kW
-   - Total: ${results.breakdown.transmission.total.toFixed(3)} kW
-
-2. Product Load (3-Stage):
-   - Sensible Above Freezing: ${results.breakdown.product.sensibleAbove.toFixed(3)} kW
-   - Latent Heat (Freezing): ${results.breakdown.product.latent.toFixed(3)} kW
-   - Sensible Below Freezing: ${results.breakdown.product.sensibleBelow.toFixed(3)} kW
-   - Total: ${results.breakdown.product.total.toFixed(3)} kW
-
-3. Air Change Load: ${results.breakdown.airChange.loadKW.toFixed(3)} kW
-
-4. Internal Loads:
-   - Occupancy: ${results.breakdown.internal.occupancy.toFixed(3)} kW
-   - Lighting: ${results.breakdown.internal.lighting.toFixed(3)} kW
-   - Equipment: ${results.breakdown.internal.equipment.toFixed(3)} kW
-   - Peripheral Heaters: ${results.breakdown.internal.peripheralHeaters.toFixed(3)} kW
-   - Door Heaters: ${results.breakdown.internal.doorHeaters.toFixed(3)} kW
-   - Tray Heaters: ${results.breakdown.internal.trayHeaters.toFixed(3)} kW
-   - Drain Heaters: ${results.breakdown.internal.drainHeaters.toFixed(3)} kW
-   - Total: ${results.breakdown.internal.total.toFixed(3)} kW
-
-SPECIFIC OUTPUTS:
-- Load in kJ/Batch: ${results.engineeringOutputs.loadKJPerBatch.toFixed(0)} kJ
-- Sensible Heat in kJ/24 Hr: ${results.engineeringOutputs.sensibleHeatKJ24Hr.toFixed(0)} kJ
-- Latent Heat in kJ/24 Hr: ${results.engineeringOutputs.latentHeatKJ24Hr.toFixed(0)} kJ
-- SHR (Sensible Heat Ratio): ${results.engineeringOutputs.SHR.toFixed(3)}
-- Air Qty Required: ${results.engineeringOutputs.airQtyRequiredCfm.toFixed(0)} CFM
-
-FINAL RESULTS:
-- Total Load (Before Safety): ${results.loadSummary.totalCalculatedKW.toFixed(3)} kW
-- Safety Factor Load (5%): ${results.loadSummary.safetyFactorKW.toFixed(3)} kW
-- Final Load: ${results.loadSummary.finalLoadKW.toFixed(3)} kW
-- Refrigeration Capacity: ${results.totalTR.toFixed(2)} TR
-- BTU/hr: ${results.totalBTU.toFixed(0)} BTU/hr
-- Daily Energy: ${results.dailyEnergyConsumption.toFixed(0)} kWh/day
-
-EQUIPMENT SUMMARY:
-- Total Fan Load: ${results.equipmentSummary.totalFanLoad.toFixed(2)} kW
-- Total Heater Load: ${results.equipmentSummary.totalHeaterLoad.toFixed(2)} kW
-- Total Lighting Load: ${results.equipmentSummary.totalLightingLoad.toFixed(2)} kW
-- Total People Load: ${results.equipmentSummary.totalPeopleLoad.toFixed(3)} kW
-
-Generated by Enzo CoolCalc
-Date: ${new Date().toLocaleDateString()}
-    `;
-
     try {
-      await Share.share({
-        message: reportData,
-        title: 'Blast Freezer Cooling Load Report'
-      });
+      // Gather input data for the PDF
+      const inputData = {
+        dimensions: results.dimensions,
+        conditions: results.conditions,
+        construction: results.construction,
+        productInfo: results.productInfo,
+        storageCapacity: results.storageCapacity,
+        temperatureDifference: results.temperatureDifference,
+        batchHours: results.batchHours,
+        equipmentSummary: results.equipmentSummary
+      };
+
+      await generateBlastFreezerPDF(results, inputData);
     } catch (error) {
-      console.error('Error sharing report:', error);
+      console.error('Error generating PDF:', error);
+      Alert.alert('Error', 'Failed to generate PDF. Please try again.');
     }
   };
 
@@ -624,7 +540,7 @@ Date: ${new Date().toLocaleDateString()}
         <View style={styles.section}>
           <TouchableOpacity style={styles.exportButton} onPress={handleExport}>
             <FileText color="#FFFFFF" size={20} strokeWidth={2} />
-            <Text style={styles.exportButtonText}>Export Report</Text>
+            <Text style={styles.exportButtonText}>Generate PDF</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
