@@ -49,9 +49,9 @@ export const COLD_ROOM_EXCEL_CONSTANTS = {
   uFactorCeiling: 0.295,        // W/m²·K  
   uFactorFloor: 0.295,          // W/m²·K
   
-  // PRODUCT  
+  // PRODUCT - Excel exact values
   bananaSpecificHeat: 4.1,      // kJ/kg·K (Excel shows for banana)
-  respirationRate: 50,          // W/tonne (Excel constant)
+  respirationRateConstant: 50,  // W/tonne (Excel constant - FIXED for all products)
   
   // AIR CHANGE
   airFlowRate: 3.4,             // L/S (Excel shows this)
@@ -87,7 +87,7 @@ export const COLD_ROOM_PRODUCTS = {
     freezingPoint: -0.8,         // °C
     density: 600,                // kg/m³
     storageEfficiency: 0.65,
-    respirationRate: 50          // W/tonne (Excel constant)
+    respirationRate: 50          // W/tonne (Excel constant - but we use fixed 50 for all)
   },
   "Vegetables (Mixed)": {
     specificHeatAbove: 3.7, 
@@ -96,7 +96,7 @@ export const COLD_ROOM_PRODUCTS = {
     freezingPoint: -1.0, 
     density: 600, 
     storageEfficiency: 0.55,
-    respirationRate: 24
+    respirationRate: 50  // FIXED: Use Excel constant 50 for all products
   },
   "Fruits (Mixed)": {
     specificHeatAbove: 3.6, 
@@ -105,7 +105,7 @@ export const COLD_ROOM_PRODUCTS = {
     freezingPoint: -1.2, 
     density: 650, 
     storageEfficiency: 0.50,
-    respirationRate: 28
+    respirationRate: 50  // FIXED: Use Excel constant 50 for all products
   },
   "Beverages": {
     specificHeatAbove: 4.0, 
@@ -114,7 +114,7 @@ export const COLD_ROOM_PRODUCTS = {
     freezingPoint: -2.0, 
     density: 1000, 
     storageEfficiency: 0.80,
-    respirationRate: 0
+    respirationRate: 50  // FIXED: Use Excel constant 50 for all products
   },
   "Dairy Products": {
     specificHeatAbove: 3.4, 
@@ -123,7 +123,7 @@ export const COLD_ROOM_PRODUCTS = {
     freezingPoint: -1.5, 
     density: 1020, 
     storageEfficiency: 0.75,
-    respirationRate: 0
+    respirationRate: 50  // FIXED: Use Excel constant 50 for all products
   },
   "Pharmaceutical": {
     specificHeatAbove: 3.2, 
@@ -132,7 +132,7 @@ export const COLD_ROOM_PRODUCTS = {
     freezingPoint: -2.0, 
     density: 800, 
     storageEfficiency: 0.70,
-    respirationRate: 0
+    respirationRate: 50  // FIXED: Use Excel constant 50 for all products
   },
   "General Food Items": {
     specificHeatAbove: 3.0, 
@@ -141,6 +141,6 @@ export const COLD_ROOM_PRODUCTS = {
     freezingPoint: -2.0, 
     density: 800, 
     storageEfficiency: 0.65,
-    respirationRate: 0
+    respirationRate: 50  // FIXED: Use Excel constant 50 for all products
   }
 };
