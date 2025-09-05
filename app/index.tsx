@@ -38,6 +38,21 @@ export default function HomeScreen() {
 
         <View style={styles.scrollContainer}>
           <View style={styles.optionsContainer}>
+            <TouchableOpacity 
+              style={styles.optionCard} 
+              onPress={handleColdRoomPress}
+            >
+              <LinearGradient
+                colors={['#10B981', '#059669']}
+                style={styles.cardGradient}
+              >
+                <Thermometer color="#FFFFFF" size={28} strokeWidth={2} />
+                <Text style={styles.cardTitle}>Cold Room</Text>
+                <Text style={styles.cardSubtitle}>Above freezing storage</Text>
+                <Text style={styles.cardDescription}>Calculate cooling loads for chilled storage (-15°C to +22°C)</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
             <TouchableOpacity style={styles.optionCard} onPress={handleFreezerPress}>
               <LinearGradient
                 colors={['#3B82F6', '#2563EB']}
@@ -62,21 +77,6 @@ export default function HomeScreen() {
                 <Text style={styles.cardTitle}>Blast Freezer</Text>
                 <Text style={styles.cardSubtitle}>Quick freezing applications</Text>
                 <Text style={styles.cardDescription}>Calculate cooling loads for rapid freezing applications (-25°C to -40°C)</Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.optionCard} 
-              onPress={handleColdRoomPress}
-            >
-              <LinearGradient
-                colors={['#10B981', '#059669']}
-                style={styles.cardGradient}
-              >
-                <Thermometer color="#FFFFFF" size={28} strokeWidth={2} />
-                <Text style={styles.cardTitle}>Cold Room</Text>
-                <Text style={styles.cardSubtitle}>Above freezing storage</Text>
-                <Text style={styles.cardDescription}>Calculate cooling loads for chilled storage (+2°C to +15°C)</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>

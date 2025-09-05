@@ -9,7 +9,21 @@
       "distribution": "internal"
     },
     "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview-apk": {
+      "android": {
+        "buildType": "apk",
+        "gradleCommand": ":app:assembleRelease"
+      },
       "distribution": "internal"
+    },
+    "expo-go": {
+      "distribution": "internal",
+      "channel": "main"
     },
     "production": {
       "autoIncrement": true
